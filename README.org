@@ -1,0 +1,77 @@
+#+TITLE: Ethereum python deploy token
+#+OPTIONS: ^:nil
+#+PROPERTY: header-args:sh :session *shell ethereum-python-deploy-token sh* :results silent raw
+#+PROPERTY: header-args:python :session *shell ethereum-python-deploy-token python* :results silent raw
+
+** System environment
+
+- Debian 9.11
+
+- Python 3.7.0
+
+Python modules:
+
+- web3==4.9.0
+
+** Imports
+
+#+BEGIN_SRC python
+import web3
+import json
+#+END_SRC
+
+** Parameters
+
+Node connection settings.
+
+#+BEGIN_SRC python
+rpc = "http://127.0.0.1:8545/"
+owner = "0x7f94B6537002C80596FBf0fcbE9d8fe7ad0C2345"
+unlockPassword = "accountpassword"
+#+END_SRC
+
+Convert address to checksum address.
+
+#+BEGIN_SRC python
+owner = web3.Web3.toChecksumAddress(owner)
+#+END_SRC
+
+ABI and bytecode.
+
+#+BEGIN_SRC python
+abi = json.loads(open("contract/abi_zusdt20.json", "rt").read())
+bytecode = open("contract/bytecode_zusdt20.txt", "rt").read().strip()
+#+END_SRC
+
+** Init web3
+
+#+BEGIN_SRC python
+w3 = web3.Web3(web3.providers.rpc.HTTPProvider(rpc))
+w3.middleware_stack.inject(web3.middleware.geth_poa_middleware, layer=0)
+#+END_SRC
+
+** Unlock account
+
+#+BEGIN_SRC python
+w3.personal.unlockAccount(owner, password)
+#+END_SRC
+
+** Init contract
+
+#+BEGIN_SRC python
+contract = w3.eth.contract(abi=abi, bytecode=bytecode)
+#+END_SRC
+
+** Send create contract transaction
+
+#+BEGIN_SRC python
+txid = contract.constructor().transact({"from": owner})
+txid.hex()
+#+END_SRC
+
+** Wait transaction confirm
+
+#+BEGIN_SRC python
+tx_receipt = w3.eth.waitForTransactionReceipt(txid)
+tx_receipt["contractAddress"]
+#+END_SRC
